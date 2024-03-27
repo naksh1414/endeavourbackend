@@ -1,8 +1,10 @@
 import "dotenv/config";
 import User from "../models/users.js";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import Team from "../models/teams.js";
 import { getUser, setUser } from "../service/auth.js";
+import nodemailer from "nodemailer";
 
 export async function handleLogin(req, res) {
   try {
@@ -25,6 +27,102 @@ export async function handleLogin(req, res) {
       return res.json({ msg: "Invalid email or password" });
     }
   } catch (error) {
+    return res.status(500).json({ msg: "Internal Server Error" });
+  }
+}
+
+export async function handleOTPSending(req, res) {
+  try {
+    const { email, OTP } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.json("Invalid Credentials");
+    }
+    const token = setUser(user);
+
+    var transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL,
+        pass: process.env.EMAIL_APP_PASSWORD,
+      },
+    });
+    var mailOptions = {
+      from: process.env.EMAIL,
+      to: email,
+      subject: "Reset Password",
+      text: `Your OTP IS ${OTP}`,
+    };
+
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        // console.log(error);
+        return res.json(error);
+      } else {
+        return res.json("Success");
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ msg: "Internal Server Error" });
+  }
+}
+
+export async function handleForgetPassword(req, res) {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.json("Invalid Credentials");
+    }
+    const token = setUser(user);
+
+    var transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL,
+        pass: process.env.EMAIL_APP_PASSWORD,
+      },
+    });
+    var mailOptions = {
+      from: process.env.EMAIL,
+      to: email,
+      subject: "Reset Password",
+      text: `${process.env.BASE_URL_FE}/endeavour/reset-password/${user._id}/${token}`,
+    };
+
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        // console.log(error);
+        return res.json(error);
+      } else {
+        return res.json("Success");
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ msg: "Internal Server Error" });
+  }
+}
+
+export async function handleResetPassword(req, res) {
+  try {
+    const { id, token, password } = req.body;
+    jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
+      if (err) {
+        return res.json("Error with token");
+      } else {
+        const user = await User.findOne({ _id: id });
+        const passwordMatch = await bcrypt.compare(password, user.password);
+        if (passwordMatch) {
+          return res.json("Don't use same password :]")
+        }
+        const salt = bcrypt.genSaltSync(11);
+        const hash_password = await bcrypt.hash(password, salt);
+        await User.findByIdAndUpdate({ _id: id }, { password: hash_password });
+        return res.json("Successfully Changed the password");
+      }
+    });
+  } catch (error) {
+    console.log(error);
     return res.status(500).json({ msg: "Internal Server Error" });
   }
 }
