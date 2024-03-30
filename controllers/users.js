@@ -336,6 +336,7 @@ export async function RegisteredEvents(req, res) {
         try {
           const Teamm = await Team.findOne({ _id: team });
           Teamm.teamMembers.forEach((userId) => uniqueUserIds.add(userId)); // Add unique user IDs to the Set
+          uniqueUserIds.add(Teamm.leaderId);
         } catch (error) {
           throw new Error("Error fetching team data");
         }
