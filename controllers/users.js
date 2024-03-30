@@ -325,6 +325,9 @@ export async function UserInfo(req, res) {
 
 export async function RegisteredEvents(req, res) {
   const { teamId } = req.body;
+  if (!teamId) {
+    return res.json({ msg: "Not Registered in any Team" });
+  }
   try {
     const uniqueUserIds = new Set(); // Use a Set to collect unique user IDs
     // Iterate over each team ID and collect unique user IDs
@@ -332,9 +335,6 @@ export async function RegisteredEvents(req, res) {
       teamId.map(async (team) => {
         try {
           const Teamm = await Team.findOne({ _id: team });
-          if (!Teamm) {
-            return res.json({ msg: "Not Registered in any Team" });
-          }
           Teamm.teamMembers.forEach((userId) => uniqueUserIds.add(userId)); // Add unique user IDs to the Set
         } catch (error) {
           throw new Error("Error fetching team data");
