@@ -12,6 +12,8 @@ import {
   handleOTPSending,
   UserInfo,
   UpdateDetails,
+  RegisteredEvents,
+  paymentInfo,
 } from "../controllers/users.js";
 import { checkAuth, restrictToLogInUserOnly } from "../middlewares/auth.js";
 // import { checkAuth } from "../middlewares/auth.js";
@@ -20,6 +22,8 @@ router.post("/login", checkAuth, handleLogin);
 router.post("/register", handleRegister);
 router.post("/userinfo/:userId", UserInfo);
 router.post("/update-details/:userId", UpdateDetails);
+router.post("/registered-events", RegisteredEvents);
+router.post("/payment-info/:userId", paymentInfo);
 router.post("/memberSearch", handleMemberSearch);
 router.post("/registerteam", handleRegisterTeam);
 router.post("/GoogleLogin", handleGoogleLogin);

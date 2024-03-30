@@ -6,6 +6,7 @@ import Team from "../models/teams.js";
 import Event from "../models/events.js";
 import { getUser, setUser } from "../service/auth.js";
 import nodemailer from "nodemailer";
+import Payment from "../models/payments.js";
 
 export async function handleLogin(req, res) {
   try {
@@ -187,7 +188,6 @@ export async function handleMemberSearch(req, res) {
 
 export async function handleRegisterTeam(req, res) {
   const { filteredData, teamName, leaderName, eventId } = req.body;
-  console.log(eventId);
   try {
     const user = await User.findOne({
       userName: leaderName,
@@ -206,7 +206,7 @@ export async function handleRegisterTeam(req, res) {
       await team.save();
 
       const teamId = await Team.findOne({
-        leaderId,
+        $and: [{ leaderId }, { eventId }],
       });
 
       filteredData.push({ userId: leaderId });
@@ -306,7 +306,6 @@ export async function UserInfo(req, res) {
       return res.json({ user: user });
     }
 
-    // Use Promise.all to wait for all asynchronous operations to complete
     await Promise.all(
       user.events.map(async (event) => {
         try {
@@ -318,10 +317,55 @@ export async function UserInfo(req, res) {
         }
       })
     );
+    return res.json({ user: user, eventl: eventname, teamIds: teamId });
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
 
+export async function RegisteredEvents(req, res) {
+  const { teamId } = req.body;
+  try {
+    const uniqueUserIds = new Set(); // Use a Set to collect unique user IDs
+    // Iterate over each team ID and collect unique user IDs
+    await Promise.all(
+      teamId.map(async (team) => {
+        try {
+          const Teamm = await Team.findOne({ _id: team });
+          if (!Teamm) {
+            return res.json({ msg: "Not Registered in any Team" });
+          }
+          Teamm.teamMembers.forEach((userId) => uniqueUserIds.add(userId)); // Add unique user IDs to the Set
+        } catch (error) {
+          throw new Error("Error fetching team data");
+        }
+      })
+    );
+    // Fetch user documents corresponding to the unique user IDs
+    const users = await User.find({ _id: { $in: Array.from(uniqueUserIds) } });
+    // Send the response with the unique users
+    return res.json({ members: users });
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+export async function paymentInfo(req, res) {
+  const { userId } = req.params;
+  const eventname = [];
+  try {
+    const paymentInfo = await Payment.find({ userId });
 
-
-    return res.json({ user: user, eventl: eventname });
+    await Promise.all(
+      paymentInfo.map(async (payment) => {
+        try {
+          const event = await Event.findOne({ _id: payment.eventId });
+          eventname.push({ id: event._id, name: event.name });
+        } catch (error) {
+          throw new Error("Error fetching team data");
+        }
+      })
+    );
+    return res.json({ payment: paymentInfo, eventname: eventname });
   } catch (error) {
     return res.status(500).json({ error: "Internal server error" });
   }
