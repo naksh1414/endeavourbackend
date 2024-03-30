@@ -3,6 +3,7 @@ import User from "../models/users.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import Team from "../models/teams.js";
+import Event from "../models/events.js";
 import { getUser, setUser } from "../service/auth.js";
 import nodemailer from "nodemailer";
 
@@ -113,7 +114,7 @@ export async function handleResetPassword(req, res) {
         const user = await User.findOne({ _id: id });
         const passwordMatch = await bcrypt.compare(password, user.password);
         if (passwordMatch) {
-          return res.json("Don't use same password :]")
+          return res.json("Don't use same password :]");
         }
         const salt = bcrypt.genSaltSync(11);
         const hash_password = await bcrypt.hash(password, salt);
@@ -287,5 +288,61 @@ export async function handleGoogleRegister(req, res) {
     }
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function UserInfo(req, res) {
+  const eventname = [];
+  const teamId = [];
+
+  const { userId } = req.params;
+  try {
+    let user = await User.findOne({ _id: userId });
+    if (!user) {
+      return res.json("User Not Exists");
+    }
+
+    if (!user.events || user.events.length === 0) {
+      return res.json({ user: user });
+    }
+
+    // Use Promise.all to wait for all asynchronous operations to complete
+    await Promise.all(
+      user.events.map(async (event) => {
+        try {
+          let eventm = await Event.findOne({ _id: event.eventId });
+          eventname.push(eventm.name);
+          teamId.push(event.teamId);
+        } catch (error) {
+          throw new Error("Error fetching event data");
+        }
+      })
+    );
+
+
+
+    return res.json({ user: user, eventl: eventname });
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function UpdateDetails(req, res) {
+  const { userId } = req.params;
+  const { phoneNumber, college, course, year, studentId, gender, city } =
+    req.body;
+  try {
+    let user = await User.findOne({ _id: userId });
+    if (user) {
+      await User.findByIdAndUpdate(
+        { _id: userId },
+        { phoneNumber, college, course, year, studentId, gender, city }
+      );
+      return res.json("Successfully Updated");
+    } else {
+      return res.json("User Not Exists");
+    }
+  } catch (error) {
+    return res.status(500).json({ error: "Internal server error" });
   }
 }

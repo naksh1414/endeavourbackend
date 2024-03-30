@@ -10,12 +10,16 @@ import {
   handleForgetPassword,
   handleResetPassword,
   handleOTPSending,
+  UserInfo,
+  UpdateDetails,
 } from "../controllers/users.js";
 import { checkAuth, restrictToLogInUserOnly } from "../middlewares/auth.js";
 // import { checkAuth } from "../middlewares/auth.js";
 
 router.post("/login", checkAuth, handleLogin);
 router.post("/register", handleRegister);
+router.post("/userinfo/:userId", UserInfo);
+router.post("/update-details/:userId", UpdateDetails);
 router.post("/memberSearch", handleMemberSearch);
 router.post("/registerteam", handleRegisterTeam);
 router.post("/GoogleLogin", handleGoogleLogin);

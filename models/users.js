@@ -46,6 +46,12 @@ const userSchema = new mongoose.Schema({
   studentId: {
     type: String,
   },
+  gender: {
+    type: String,
+  },
+  city: {
+    type: String,
+  },
   events: [
     {
       eventId: {
