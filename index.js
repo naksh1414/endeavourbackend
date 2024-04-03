@@ -20,6 +20,15 @@ app.use(cookieParser());
 app.use(cors());
 app.use(bodyParser.json());
 
+app.use(function (req, res, next) {
+  res.header(
+    "Access-Control-Allow-Origin",
+    "https://e-cell2024frontend-q4eo.vercel.app"
+  );
+  res.header("Access-Control-Allow-Credentials", true);
+  next();
+});
+
 import mongoose from "mongoose";
 // import { checkAuth, restrictToLogInUserOnly } from "./middlewares/auth.js";
 const dbUrl = process.env.DB_URL;
