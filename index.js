@@ -17,13 +17,7 @@ const frontEnd_URL = process.env.FRONTEND_URL;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(
-  cors({
-    origin: ["*"],
-    methods: ["GET", "PUT", "PATCH", "POST", "DELETE"],
-    credentials: true,
-  })
-);
+app.use(cors());
 app.use(bodyParser.json());
 
 import mongoose from "mongoose";
