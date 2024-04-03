@@ -3,7 +3,7 @@ import express from "express";
 const app = express();
 import cors from "cors";
 import bodyParser from "body-parser";
-// import adminRoute from "./routes/admin.js";
+import adminRoute from "./routes/admin.js";
 import userRoute from "./routes/users.js";
 import stdPassRoute from "./routes/stdPass.js";
 import eventsRoute from "./routes/events.js";
@@ -14,13 +14,13 @@ import Razorpay from "razorpay";
 
 const frontEnd_URL = process.env.FRONTEND_URL;
 
-app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(
   cors({
     origin: frontEnd_URL,
-    methods: ["POST", "GET"],
+    methods: ["GET", "PUT", "PATCH", "POST", "DELETE"],
     credentials: true,
   })
 );
@@ -42,10 +42,10 @@ db.once("open", () => {
 });
 
 //Routes
-// app.use("/", adminRoute);
 app.use("/", eventsRoute);
 app.use("/", stdPassRoute);
 app.use("/", userRoute);
+app.use("/admin", adminRoute);
 app.use("/api", paymentRoute);
 
 const port = process.env.PORT || 3000;

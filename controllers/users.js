@@ -18,7 +18,7 @@ export async function handleLogin(req, res) {
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (passwordMatch) {
       const token = setUser(user);
-      res.cookie("token", token, { httpOnly: true, secure: true });
+      res.cookie("token", token, { maxAge: 60 * 2000 });
       return res.status(200).json({
         exists: "exists",
         token: token,
@@ -113,9 +113,11 @@ export async function handleResetPassword(req, res) {
         return res.json("Error with token");
       } else {
         const user = await User.findOne({ _id: id });
-        const passwordMatch = await bcrypt.compare(password, user.password);
-        if (passwordMatch) {
-          return res.json("Don't use same password :]");
+        if (user.password) {
+          const passwordMatch = bcrypt.compare(password, user.password);
+          if (passwordMatch) {
+            return res.json("Don't use same password :]");
+          }
         }
         const salt = bcrypt.genSaltSync(11);
         const hash_password = await bcrypt.hash(password, salt);
@@ -245,6 +247,8 @@ export async function handleGoogleLogin(req, res) {
         userName: user.userName,
         email: user.email,
         userId: user._id,
+        isAdmin: user.isAdmin,
+        isSuperAdmin: user.isSuperAdmin,
         token,
       });
     } else {
@@ -294,32 +298,48 @@ export async function handleGoogleRegister(req, res) {
 export async function UserInfo(req, res) {
   const eventname = [];
   const teamId = [];
+  let authData;
 
-  const { userId } = req.params;
-  try {
-    let user = await User.findOne({ _id: userId });
-    if (!user) {
-      return res.json("User Not Exists");
+  jwt.verify(req.token, process.env.JWT_SECRET, (err, authD) => {
+    if (err) {
+      return res.json({ msg: "invalid token" });
+    } else {
+      authData = authD;
+      userInfo();
     }
+  });
 
-    if (!user.events || user.events.length === 0) {
-      return res.json({ user: user });
+  async function userInfo() {
+    const userId = authData._id;
+    try {
+      let user = await User.findOne({ _id: userId });
+      if (!user) {
+        return res.json("User Not Exists");
+      }
+
+      if (!user.events || user.events.length === 0) {
+        return res.json({ user: user });
+      }
+
+      await Promise.all(
+        user.events.map(async (event) => {
+          try {
+            let eventm = await Event.findOne({ _id: event.eventId });
+            eventname.push({
+              eventName: eventm.name,
+              eventId: eventm._id.toString(),
+            });
+            teamId.push(event.teamId);
+          } catch (error) {
+            throw new Error("Error fetching event data");
+          }
+        })
+      );
+
+      return res.json({ user: user, eventl: eventname, teamIds: teamId });
+    } catch (error) {
+      return res.status(500).json({ error: "Internal server error" });
     }
-
-    await Promise.all(
-      user.events.map(async (event) => {
-        try {
-          let eventm = await Event.findOne({ _id: event.eventId });
-          eventname.push(eventm.name);
-          teamId.push(event.teamId);
-        } catch (error) {
-          throw new Error("Error fetching event data");
-        }
-      })
-    );
-    return res.json({ user: user, eventl: eventname, teamIds: teamId });
-  } catch (error) {
-    return res.status(500).json({ error: "Internal server error" });
   }
 }
 
@@ -350,6 +370,7 @@ export async function RegisteredEvents(req, res) {
     return res.status(500).json({ error: "Internal server error" });
   }
 }
+
 export async function paymentInfo(req, res) {
   const { userId } = req.params;
   const eventname = [];
@@ -373,21 +394,34 @@ export async function paymentInfo(req, res) {
 }
 
 export async function UpdateDetails(req, res) {
-  const { userId } = req.params;
-  const { phoneNumber, college, course, year, studentId, gender, city } =
-    req.body;
-  try {
-    let user = await User.findOne({ _id: userId });
-    if (user) {
-      await User.findByIdAndUpdate(
-        { _id: userId },
-        { phoneNumber, college, course, year, studentId, gender, city }
-      );
-      return res.json("Successfully Updated");
+  let authData;
+
+  jwt.verify(req.token, process.env.JWT_SECRET, (err, authD) => {
+    if (err) {
+      return res.json({ msg: "invalid token" });
     } else {
-      return res.json("User Not Exists");
+      authData = authD;
+      updateUserInfo();
     }
-  } catch (error) {
-    return res.status(500).json({ error: "Internal server error" });
+  });
+
+  async function updateUserInfo() {
+    const userId = authData._id;
+    const { phoneNumber, college, course, year, studentId, gender, city } =
+      req.body;
+    try {
+      let user = await User.findOne({ _id: userId });
+      if (user) {
+        await User.findByIdAndUpdate(
+          { _id: userId },
+          { phoneNumber, college, course, year, studentId, gender, city }
+        );
+        return res.json("Successfully Updated");
+      } else {
+        return res.json("User Not Exists");
+      }
+    } catch (error) {
+      return res.status(500).json({ error: "Internal server error" });
+    }
   }
 }
