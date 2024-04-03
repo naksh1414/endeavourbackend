@@ -50,7 +50,9 @@ export const paymentverification = async (req, res) => {
         razorpay_signature,
         status: "SUCCESS",
       });
-      res.redirect(`http://localhost:5173/endeavour/events/${eventId}`);
+      res.redirect(
+        `https://e-cell2024frontend-q4eo.vercel.app/endeavour/events/${eventId}`
+      );
     } else {
       res.status(400).json({
         success: false,
