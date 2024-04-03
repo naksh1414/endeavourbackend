@@ -11,6 +11,7 @@ import Payment from "../models/payments.js";
 export async function handleLogin(req, res) {
   try {
     const { email, password } = req.body;
+    console.log(email, password);
     const user = await User.findOne({ email });
     if (!user) {
       return res.json({ msg: "Invalid Credentials" });
@@ -133,6 +134,7 @@ export async function handleResetPassword(req, res) {
 
 export async function handleRegister(req, res) {
   const { email, password, phoneNumber, username } = req.body;
+  console.log(email, password, phoneNumber, username);
   try {
     const user = await User.findOne({ email });
     if (user) {
